@@ -1,4 +1,25 @@
 local ChatQueue = require "widgets/chatqueue"
+local CHAT_QUEUE_SIZE = 7
+local CHAT_EXPIRE_TIME = 1.0
+
+function ChatQueue:PushMessage(username, message, colour, whisper, nolabel, profileflair)
+    -- Shuffle upwards
+    for i = 1, CHAT_QUEUE_SIZE - 1 do
+        self.chat_queue_data[i] = GLOBAL.shallowcopy( self.chat_queue_data[i+1] )
+    end
+
+    --Set this new message into the chat queue data
+    self.chat_queue_data[CHAT_QUEUE_SIZE].expire_time = GLOBAL.GetTime() + CHAT_EXPIRE_TIME
+    self.chat_queue_data[CHAT_QUEUE_SIZE].username = username
+    self.chat_queue_data[CHAT_QUEUE_SIZE].message = message
+    self.chat_queue_data[CHAT_QUEUE_SIZE].colour = colour
+    self.chat_queue_data[CHAT_QUEUE_SIZE].whisper = whisper
+    self.chat_queue_data[CHAT_QUEUE_SIZE].nolabel = nolabel
+    self.chat_queue_data[CHAT_QUEUE_SIZE].profileflair = profileflair
+
+    self:RefreshWidgets()
+end
+
 local TLC_LANGUAGE = GetModConfigData("TLC_LANGUAGE")
 local TLC_TOGGLE_KEY = GetModConfigData("TLC_TOGGLE_KEY")
 local TLC_DISPLAY_CHANGE = GetModConfigData("TLC_DISPLAY_CHANGE")
