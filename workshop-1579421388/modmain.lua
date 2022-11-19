@@ -6,6 +6,28 @@ local obc_recentTarget = {
 	x = 0, y = 0, z = 0,
 }
 
+local ChatQueue = require "widgets/chatqueue"
+local CHAT_QUEUE_SIZE = 7
+local CHAT_EXPIRE_TIME = 1.0
+
+function ChatQueue:PushMessage(username, message, colour, whisper, nolabel, profileflair)
+    -- Shuffle upwards
+    for i = 1, CHAT_QUEUE_SIZE - 1 do
+        self.chat_queue_data[i] = GLOBAL.shallowcopy( self.chat_queue_data[i+1] )
+    end
+
+    --Set this new message into the chat queue data
+    self.chat_queue_data[CHAT_QUEUE_SIZE].expire_time = GLOBAL.GetTime() + CHAT_EXPIRE_TIME
+    self.chat_queue_data[CHAT_QUEUE_SIZE].username = username
+    self.chat_queue_data[CHAT_QUEUE_SIZE].message = message
+    self.chat_queue_data[CHAT_QUEUE_SIZE].colour = colour
+    self.chat_queue_data[CHAT_QUEUE_SIZE].whisper = whisper
+    self.chat_queue_data[CHAT_QUEUE_SIZE].nolabel = nolabel
+    self.chat_queue_data[CHAT_QUEUE_SIZE].profileflair = profileflair
+
+    self:RefreshWidgets()
+end
+
 local function TextFilter(texts)
 	if obc_languageCode == "schinese" then
 		return texts[1]
@@ -17,7 +39,11 @@ local function TextFilter(texts)
 end
 
 local function Say(texts)
-	GLOBAL.ThePlayer.components.talker:Say(TextFilter(texts))
+	if GLOBAL.ThePlayer.HUD.controls.gcc_mod_chatqueue == nil then
+        GLOBAL.ThePlayer.HUD.controls.gcc_mod_chatqueue = GLOBAL.ThePlayer.HUD.controls.chat_queue_root:AddChild(ChatQueue())
+        GLOBAL.ThePlayer.HUD.controls.gcc_mod_chatqueue:SetClickable(false)
+    end
+	GLOBAL.ThePlayer.HUD.controls.gcc_mod_chatqueue:DisplaySystemMessage(TextFilter(texts))
 end
 
 local function IsDefaultScreen()
@@ -208,37 +234,42 @@ local FollowCameraPostConstruct = function(self)
 			SetVerticalView()
 		end
 	end
-	self.Update = function(self, dt)
+	self.Update = function(self, dt, dontupdatepos)
 		if self.paused then
 			return
 		end
 		local pangain = dt * self.pangain
-		if self.cutscene then
-			self.currentpos.x = lerp(self.currentpos.x, self.targetpos.x + self.targetoffset.x, pangain)
-			self.currentpos.y = lerp(self.currentpos.y, self.targetpos.y + self.targetoffset.y, pangain)
-			self.currentpos.z = lerp(self.currentpos.z, self.targetpos.z + self.targetoffset.z, pangain)
-		else
-			if self.time_since_zoom ~= nil and not self.cutscene then
-				self.time_since_zoom = self.time_since_zoom + dt
-				if self.should_push_down and self.time_since_zoom > .25 then
-					self.distancetarget = self.distance - self.zoomstep
-				end
-			end
-			if self.target ~= nil then
-				local x, y, z = self.target.Transform:GetWorldPosition()
-				if x == nil or y == nil or z == nil then
-					if IsDefaultScreen() then
-						self:SetTarget(GLOBAL.ThePlayer)
+		if not dontupdatepos then
+			if self.cutscene then
+				self.currentpos.x = lerp(self.currentpos.x, self.targetpos.x + self.targetoffset.x, pangain)
+				self.currentpos.y = lerp(self.currentpos.y, self.targetpos.y + self.targetoffset.y, pangain)
+				self.currentpos.z = lerp(self.currentpos.z, self.targetpos.z + self.targetoffset.z, pangain)
+			else
+				if self.time_since_zoom ~= nil and not self.cutscene then
+					self.time_since_zoom = self.time_since_zoom + dt
+					if self.should_push_down and self.time_since_zoom > 1.0 then
+						self.distancetarget = (self.maxdist - self.mindist) * 0.6 + self.mindist
 					end
-					return
 				end
-				self.targetpos.x = x + self.targetoffset.x
-				self.targetpos.y = y + self.targetoffset.y
-				self.targetpos.z = z + self.targetoffset.z
+				if self.target ~= nil then
+					if self.target.components.focalpoint then
+						self.target.components.focalpoint:CameraUpdate(dt)
+					end
+					local x, y, z = self.target.Transform:GetWorldPosition()
+					if x == nil or y == nil or z == nil then
+						if IsDefaultScreen() then
+							self:SetTarget(GLOBAL.ThePlayer)
+						end
+						return
+					end
+					self.targetpos.x = x + self.targetoffset.x
+					self.targetpos.y = y + self.targetoffset.y
+					self.targetpos.z = z + self.targetoffset.z
+				end
+				self.currentpos.x = lerp(self.currentpos.x, self.targetpos.x, pangain)
+				self.currentpos.y = lerp(self.currentpos.y, self.targetpos.y, pangain)
+				self.currentpos.z = lerp(self.currentpos.z, self.targetpos.z, pangain)
 			end
-			self.currentpos.x = lerp(self.currentpos.x, self.targetpos.x, pangain)
-			self.currentpos.y = lerp(self.currentpos.y, self.targetpos.y, pangain)
-			self.currentpos.z = lerp(self.currentpos.z, self.targetpos.z, pangain)
 		end
 		local screenxoffset = 0
 		while #self.screenoffsetstack > 0 do
@@ -289,15 +320,34 @@ local FollowCameraPostConstruct = function(self)
 	end
 end
 
-GLOBAL.TheInput:AddKeyUpHandler(GetModConfigData("OBC_FUNCTION_KEY_1"), ChangeViewMode)
-GLOBAL.TheInput:AddKeyUpHandler(GetModConfigData("OBC_FUNCTION_KEY_2"), ShowOrHideHUD)
-GLOBAL.TheInput:AddKeyUpHandler(GetModConfigData("OBC_FUNCTION_KEY_3"), ShowOrHidePlayer)
-GLOBAL.TheInput:AddKeyUpHandler(GetModConfigData("OBC_SWITCH_KEY_1"):lower():byte(), ChangeCameraTarget)
-GLOBAL.TheInput:AddKeyUpHandler(GetModConfigData("OBC_SWITCH_KEY_2"):lower():byte(), ChangeCameraPosition)
-GLOBAL.TheInput:AddKeyUpHandler(GetModConfigData("OBC_RESET_KEY"):lower():byte(), ResetCameraTarget)
-GLOBAL.TheInput:AddKeyUpHandler(GLOBAL.KEY_RIGHT, function() AddFOV(1) end)
-GLOBAL.TheInput:AddKeyUpHandler(GLOBAL.KEY_LEFT, function() AddFOV(-1) end)
-GLOBAL.TheInput:AddKeyUpHandler(GLOBAL.KEY_UP, function() AddFOV(5) end)
-GLOBAL.TheInput:AddKeyUpHandler(GLOBAL.KEY_DOWN, function() AddFOV(-5) end)
+local function BindKey(key, func)
+	if type(key) == "string" then
+		GLOBAL.TheInput:AddKeyUpHandler(key:lower():byte(), func)
+	else
+		GLOBAL.TheInput:AddKeyUpHandler(key, func)
+	end
+end
+
+local OBC_FUNCTION_KEY_1 = GetModConfigData("OBC_FUNCTION_KEY_1")
+local OBC_FUNCTION_KEY_2 = GetModConfigData("OBC_FUNCTION_KEY_2")
+local OBC_FUNCTION_KEY_3 = GetModConfigData("OBC_FUNCTION_KEY_3")
+local OBC_SWITCH_KEY_1 = GetModConfigData("OBC_SWITCH_KEY_1")
+local OBC_SWITCH_KEY_2 = GetModConfigData("OBC_SWITCH_KEY_2")
+local OBC_RESET_KEY = GetModConfigData("OBC_RESET_KEY")
+local OBC_FOV_PLUS_KEY = GetModConfigData("OBC_FOV_PLUS_KEY")
+local OBC_FOV_MINUS_KEY = GetModConfigData("OBC_FOV_MINUS_KEY")
+local OBC_FOV_PLUS_MORE_KEY = GetModConfigData("OBC_FOV_PLUS_MORE_KEY")
+local OBC_FOV_MINUS_MORE_KEY = GetModConfigData("OBC_FOV_MINUS_MORE_KEY")
+
+BindKey(OBC_FUNCTION_KEY_1, ChangeViewMode)
+BindKey(OBC_FUNCTION_KEY_2, ShowOrHideHUD)
+BindKey(OBC_FUNCTION_KEY_3, ShowOrHidePlayer)
+BindKey(OBC_SWITCH_KEY_1, ChangeCameraTarget)
+BindKey(OBC_SWITCH_KEY_2, ChangeCameraPosition)
+BindKey(OBC_RESET_KEY, ResetCameraTarget)
+BindKey(OBC_FOV_PLUS_KEY, function() AddFOV(1) end)
+BindKey(OBC_FOV_MINUS_KEY, function() AddFOV(-1) end)
+BindKey(OBC_FOV_PLUS_MORE_KEY, function() AddFOV(5) end)
+BindKey(OBC_FOV_MINUS_MORE_KEY, function() AddFOV(-5) end)
 
 AddClassPostConstruct('cameras/followcamera', FollowCameraPostConstruct)
