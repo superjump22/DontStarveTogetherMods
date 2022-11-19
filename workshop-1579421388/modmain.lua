@@ -323,7 +323,7 @@ end
 local function BindKey(key, func)
 	if type(key) == "string" then
 		GLOBAL.TheInput:AddKeyUpHandler(key:lower():byte(), func)
-	else
+	elseif key > 0 then
 		GLOBAL.TheInput:AddKeyUpHandler(key, func)
 	end
 end
