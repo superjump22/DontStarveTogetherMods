@@ -3,7 +3,7 @@ name = "Observer Camera"
 
 --A description of the mod.
 description = [[
-[Version 1.3.3] - 使用说明：
+[Version 1.3.4] - 使用说明：
 1. 按下 F9 在默认视角、高空视角、俯视视角间切换；
 2. 按下 F10 隐藏/显示游戏HUD；
 3. 按下 F11 隐藏/显示自身角色；
@@ -22,7 +22,7 @@ You can subscribed to the pure English version if you dislike this bilingual ver
 author = "gcc"
 
 --A version number so you can ask people if they are running an old version of your mod.
-version = "1.3.3"
+version = "1.3.4"
 
 --This lets other players know if your mod is out of date. This typically needs to be updated every time there's a new game update.
 api_version = 6

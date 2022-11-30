@@ -5,12 +5,12 @@ name = "Toggle Lag Compensation"
 description = [[
 这个MOD让你不需要打开设置就能一键开关延迟补偿。
 
-[Version 1.0.5]
+[Version 1.0.6]
 更新日志：修复不在聊天信息中显示开关状态的bug，添加了新的可选择键位（现支持A-Z、0-9、F1·F12）
 
 With this MOD, you can toggle lag compensation more conveniently without opening settings screen.
 
-[Version 1.0.5]
+[Version 1.0.6]
 Update log: fix the bug that does not display the switch status in chat messages, add more selectable keys (A-Z, 0-9, F1·F12)
 ]]
 
@@ -18,7 +18,7 @@ Update log: fix the bug that does not display the switch status in chat messages
 author = "gcc"
 
 --A version number so you can ask people if they are running an old version of your mod.
-version = "1.0.5"
+version = "1.0.6"
 
 --This lets other players know if your mod is out of date. This typically needs to be updated every time there's a new game update.
 api_version = 6

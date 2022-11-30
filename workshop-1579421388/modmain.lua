@@ -6,28 +6,6 @@ local obc_recentTarget = {
 	x = 0, y = 0, z = 0,
 }
 
-local ChatQueue = require "widgets/chatqueue"
-local CHAT_QUEUE_SIZE = 7
-local CHAT_EXPIRE_TIME = 1.0
-
-function ChatQueue:PushMessage(username, message, colour, whisper, nolabel, profileflair)
-    -- Shuffle upwards
-    for i = 1, CHAT_QUEUE_SIZE - 1 do
-        self.chat_queue_data[i] = GLOBAL.shallowcopy( self.chat_queue_data[i+1] )
-    end
-
-    --Set this new message into the chat queue data
-    self.chat_queue_data[CHAT_QUEUE_SIZE].expire_time = GLOBAL.GetTime() + CHAT_EXPIRE_TIME
-    self.chat_queue_data[CHAT_QUEUE_SIZE].username = username
-    self.chat_queue_data[CHAT_QUEUE_SIZE].message = message
-    self.chat_queue_data[CHAT_QUEUE_SIZE].colour = colour
-    self.chat_queue_data[CHAT_QUEUE_SIZE].whisper = whisper
-    self.chat_queue_data[CHAT_QUEUE_SIZE].nolabel = nolabel
-    self.chat_queue_data[CHAT_QUEUE_SIZE].profileflair = profileflair
-
-    self:RefreshWidgets()
-end
-
 local function TextFilter(texts)
 	if obc_languageCode == "schinese" then
 		return texts[1]
@@ -39,11 +17,8 @@ local function TextFilter(texts)
 end
 
 local function Say(texts)
-	if GLOBAL.ThePlayer.HUD.controls.gcc_mod_chatqueue == nil then
-        GLOBAL.ThePlayer.HUD.controls.gcc_mod_chatqueue = GLOBAL.ThePlayer.HUD.controls.chat_queue_root:AddChild(ChatQueue())
-        GLOBAL.ThePlayer.HUD.controls.gcc_mod_chatqueue:SetClickable(false)
-    end
-	GLOBAL.ThePlayer.HUD.controls.gcc_mod_chatqueue:DisplaySystemMessage(TextFilter(texts))
+	-- guid, userid, name, prefab, message, colour, whisper, isemote, user_vanity
+	GLOBAL.Networking_Say(-1, -1, 'OB', nil, TextFilter(texts), {1, 1, 1, 1}, false, 'none')
 end
 
 local function IsDefaultScreen()
